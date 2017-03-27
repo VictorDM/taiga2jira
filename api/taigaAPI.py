@@ -9,6 +9,7 @@ Description: Main file
 Authors: Víctor Díaz
 License:
 """
+import api.constants as constants
 from api.utils import taiga_to_date_time
 from taiga import TaigaAPI as _TaigaAPI
 
@@ -17,14 +18,15 @@ class TaigaAPI(object):
 
     def __init__(self, logger):
         self.logger = logger
-        self.api = _TaigaAPI(host='https://taiga.i4slabs.com/')
+        self.api = _TaigaAPI(host=constants.TAIGA_HOST)
 
     def taiga_auth(self, user, passwd):
-        self.logger.debug("Connecting to Taiga")
+        self.logger.info("Connecting to Taiga")
         self.api.auth(username=user, password=passwd)
-        self.logger.debug("Connecting to Taiga OK")
+        self.logger.info("Connecting to Taiga OK")
 
     def get_projects(self):
+        self.logger.debug("Taiga getting projects")
         json_projects = {'projects': []}
         projects = self.api.projects.list()
         for project in projects:
@@ -33,16 +35,22 @@ class TaigaAPI(object):
         return json_projects
 
     def get_project_sprints(self, project_id):
+        self.logger.debug("Taiga getting project {} sprints".format(project_id))
         json = {'sprints': []}
         sprints = self.api.projects.get_by_slug(project_id).list_milestones()
         for sprint in sprints:
-            json.get('sprints').append({'id': sprint.id, 'key': sprint.slug, 'name': sprint.name,
-                                        'start': taiga_to_date_time(sprint.estimated_start),
-                                        'end': taiga_to_date_time(sprint.estimated_finish)})
-        self.logger.debug("Taiga project {} sprints: {}".format(project_id, json))
+            json_sprint = {'id': sprint.id,
+                           'key': sprint.slug,
+                           'name': sprint.name,
+                           'start': taiga_to_date_time(sprint.estimated_start),
+                           'end': taiga_to_date_time(sprint.estimated_finish)
+                           }
+            json.get('sprints').append(json_sprint)
+            self.logger.debug("Taiga Project {} - Sprint: {}\n{}".format(project_id, sprint.id, json_sprint))
         return json
 
     def get_sprint_stories(self, project_id, sprint_id):
+        self.logger.debug("Taiga getting project {} sprint {} user stories".format(project_id, sprint_id))
         json = {'user_stories': []}
         sprints = self.api.projects.get_by_slug(project_id).list_milestones()
         for sprint in sprints:
@@ -60,12 +68,12 @@ class TaigaAPI(object):
                                                      'sprint_order': user_story.sprint_order,
                                                      'finish_date': taiga_to_date_time(user_story.finish_date),
                                                      'total_points': user_story.total_points,
-                                                     'comment': user_story.comment,
                                                      'tags': json_tags,
                                                      'tasks': json_tasks})
         return json
 
     def get_sprint_story_tasks(self, project_id, user_story_ref):
+        self.logger.debug("Taiga getting project {} user story {} tasks".format(project_id, user_story_ref))
         json = {'tasks': []}
         user_story = self.api.projects.get_by_slug(project_id).get_userstory_by_ref(user_story_ref)
         tasks = user_story.list_tasks()

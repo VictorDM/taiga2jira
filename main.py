@@ -70,11 +70,15 @@ def jira_sprint_exists(jira_api, jira_board_key, sprint_name):
     return sprint_id
 
 def sprints_to_jira(taiga_api, jira_api, taiga_project_key, jira_board_key, logger):
+    # Get all Taiga sprints
     sprints = taiga_api.get_project_sprints(taiga_project_key)
+    # Create each sprint and their stories and tasks in Jira
     for sprint in sprints.get('sprints'):
         sprint_name = sprint.get('name')[:30]
-        if sprint_name == 'S50 - Lo vamos a petar':
+        if sprint_name == 'S52 - Agoreeeeeeer':
+            # Check if sprint exists in Jira
             jira_sprint_id = jira_sprint_exists(jira_api, jira_board_key, sprint_name)
+            # Get taiga sprint begin and end
             sprint_start = date_time_to_jira(sprint.get('start'))
             sprint_end = date_time_to_jira(sprint.get('end'))
             if not jira_sprint_id:
@@ -82,19 +86,21 @@ def sprints_to_jira(taiga_api, jira_api, taiga_project_key, jira_board_key, logg
                 logger.info("Sprint created: {} # {}".format(jira_sprint_id, sprint_name))
             else:
                 logger.warn("Sprint not created. Already exists: {}".format(sprint_name))
+            # Get Taiga user stories of the sprint with their tasks
             taiga_user_stories = taiga_api.get_sprint_stories(taiga_project_key, sprint.get("id")).get("user_stories")
+            # Add user stories with their tasks to the sprint
             jira_api.create_sprint_stories(jira_board_key, jira_sprint_id, taiga_user_stories)
+            # Close sprint
             jira_api.close_sprint(jira_sprint_id, sprint_start, sprint_end)
 
 def main():
     logger = create_app_logger()
-    logger.info("Begin")
+    logger.info("Starting migration from Taiga to Jira")
     taiga_username = input('Taiga Username: ')
     taiga_password = getpass.getpass(prompt='Taia Password: ', stream=None)
     # Taiga
     taiga_api = auth_taiga(taiga_username, taiga_password, logger)
     taiga_project = select_taiga_project(taiga_api)
-    #print(taiga_api.get_sprint_stories("i4s-lux-idm", 125))
     # show_taiga_sprints(taiga_api, taiga_project)
     # Jira
     jira_username = input('Jira Username: ')
@@ -102,12 +108,10 @@ def main():
     jira_api = auth_jira(jira_username, jira_password, logger)
     jira_board = select_jira_board(jira_api)
     # jira_api.get_project_sprints(jira_board)
-    # jira_api.get_user_story_tasks()
     # jira_api.delete_project_sprints(jira_board)
     sprints_to_jira(taiga_api, jira_api, taiga_project, jira_board, logger)
     # show_jira_sprints(jira_api, jira_board)
-    # jira_api.create_sprint_stories(jira_board, 208, None)
-    logger.info("End")
+    logger.info("End of migration. Good luck!")
 
 if __name__ == '__main__':
     main()
