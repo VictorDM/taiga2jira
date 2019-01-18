@@ -14,6 +14,7 @@ import datetime
 
 def taiga_to_date_time(str_date_time):
     """Convert taiga date time string to python datetime."""
+    print("Date time string: {}".format(str_date_time))
     if str_date_time is None:
         return None
     else:
